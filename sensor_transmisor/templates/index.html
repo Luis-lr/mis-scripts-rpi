@@ -248,8 +248,8 @@
 
     <script>
     let grafico;
-    let datosVoltaje = [];
-    let etiquetasTiempo = [];
+    let datosVoltaje = [0, 0]; // Inicializar con datos dummy para mantener escala
+    let etiquetasTiempo = ['', '']; // Inicializar con etiquetas dummy
 
     // Crear el gráfico al cargar
     document.addEventListener("DOMContentLoaded", function () {
@@ -269,14 +269,29 @@
             options: {
                 animation: false,
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     x: {
-                        title: { display: true, text: 'Hora' }
+                        title: { display: true, text: 'Hora' },
+                        type: 'category',
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 5
+                        }
                     },
                     y: {
                         title: { display: true, text: 'Voltaje (V)' },
                         min: 0,
-                        max: 3.3
+                        max: 3.3,
+                        beginAtZero: false,
+                        ticks: {
+                            stepSize: 0.5
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
                     }
                 }
             }
