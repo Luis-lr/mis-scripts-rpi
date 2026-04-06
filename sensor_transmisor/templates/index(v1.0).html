@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lectura de Sensores</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        input { width: 100px; margin: 5px; text-align: right; }
+        .sensor-box { margin-bottom: 10px; }
+        .label { display: inline-block; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>📡 Lectura de Sensores</h1>
+    <div class="sensor-box"><span class="label">Voltaje analógico:</span> <input id="volt_analog" readonly> V</div>
+    <div class="sensor-box"><span class="label">Voltaje batería:</span> <input id="volt_bat" readonly> V</div>
+    <div class="sensor-box"><span class="label">Temp DHT11:</span> <input id="temp_dht" readonly> °C</div>
+    <div class="sensor-box"><span class="label">Humedad DHT11:</span> <input id="hum_dht" readonly> %</div>
+    <div class="sensor-box"><span class="label">Temp DS18B20:</span> <input id="temp_ds18" readonly> °C</div>
+    <div class="sensor-box"><span class="label">Temp SHT10:</span> <input id="temp_sht" readonly> °C</div>
+    <div class="sensor-box"><span class="label">Humedad SHT10:</span> <input id="hum_sht" readonly> %</div>
+
+    <button onclick="leerSensores()">🔁 Leer Sensores</button>
+    <p id="estado"></p>
+
+    <script>
+        function leerSensores() {
+            document.getElementById('estado').innerText = "Leyendo...";
+            fetch('/leer_sensores')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('estado').innerText = "Error: " + data.error;
+                    } else {
+                        document.getElementById('volt_analog').value = data.volt_analog;
+                        document.getElementById('volt_bat').value = data.volt_bat;
+                        document.getElementById('temp_dht').value = data.temp_dht;
+                        document.getElementById('hum_dht').value = data.hum_dht;
+                        document.getElementById('temp_ds18').value = data.temp_ds18;
+                        document.getElementById('temp_sht').value = data.temp_sht;
+                        document.getElementById('hum_sht').value = data.hum_sht;
+                        document.getElementById('estado').innerText = "✅ Lectura exitosa";
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('estado').innerText = "Error de conexión: " + error;
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+sudo journalctl -u sensor_transmisor.service -f
+rclone copy "GDrive:Proyectos/Agro/2025/Respaldo scripts DietPi/sensor_transmisor/" /home/dietpi/scripts/sensor_transmisor/ --update -P
+ps aux | grep recibe_guarda_datos_sensor_transmisor
+sudo kill 467
+sudo pkill -f recibe_guarda_datos_sensor_transmisor.py
+cat /etc/systemd/system/sensor_transmisor.service
+sudo systemctl stop sensor_transmisor.service
+sudo systemctl disable sensor_transmisor.service
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl restart sensor_transmisor.service
+
+sudo systemctl status sensor_transmisor.service

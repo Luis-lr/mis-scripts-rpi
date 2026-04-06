@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lectura de Sensores</title>
+    <script>
+        function seleccionarTodos(checked) {
+            const checkboxes = document.querySelectorAll(".sensor-checkbox");
+            checkboxes.forEach(cb => cb.checked = checked);
+        }
+
+        async function leerSensores() {
+            const btn = document.getElementById("btnLeer");
+            const estado = document.getElementById("estado");
+
+            const seleccionados = Array.from(document.querySelectorAll(".sensor-checkbox:checked"))
+                                        .map(cb => cb.value);
+
+            if (seleccionados.length === 0) {
+                alert("Selecciona al menos un sensor.");
+                return;
+            }
+
+            btn.disabled = true;
+            estado.innerText = "Solicitando datos...";
+
+            try {
+                const response = await fetch(`/leer_sensores?comandos=${seleccionados.join(",")}`);
+                const datos = await response.json();
+
+                if (!response.ok || datos.error) {
+                    estado.style.color = "red";
+                    estado.innerText = datos.error || "Error al leer sensores";
+                    return;
+                }
+
+                // Mostrar datos
+                document.getElementById("volt_analog").value = datos.volt_analog?.toFixed(2) || '';
+                document.getElementById("volt_bat").value = datos.volt_bat?.toFixed(2) || '';
+                document.getElementById("temp_dht").value = datos.temp_dht?.toFixed(2) || '';
+                document.getElementById("hum_dht").value = datos.hum_dht?.toFixed(2) || '';
+                document.getElementById("temp_ds18").value = datos.temp_ds18?.toFixed(2) || '';
+                document.getElementById("temp_sht").value = datos.temp_sht?.toFixed(2) || '';
+                document.getElementById("hum_sht").value = datos.hum_sht?.toFixed(2) || '';
+
+                estado.style.color = "green";
+                estado.innerText = "Lectura completada.";
+            } catch (error) {
+                estado.style.color = "red";
+                estado.innerText = "Fallo de conexión con el servidor.";
+                console.error(error);
+            } finally {
+                setTimeout(() => {
+                    estado.innerText = "";
+                    estado.style.color = "blue";
+                    btn.disabled = false;
+                }, 3000); // espera 3 segundos antes de permitir otra lectura
+            }
+        }
+
+
+        function limpiarCampos() {
+            const campos = [
+                "volt_analog", "volt_bat",
+                "temp_dht", "hum_dht",
+                "temp_ds18", "temp_sht", "hum_sht"
+            ];
+            campos.forEach(id => document.getElementById(id).value = '');
+        }
+    </script>
+</head>
+<body>
+    <h1>Lectura de Sensores</h1>
+
+    <h3>Selecciona los sensores:</h3>
+    <label><input type="checkbox" onchange="seleccionarTodos(this.checked)"> Seleccionar todos</label><br>
+    <label><input type="checkbox" class="sensor-checkbox" value="A"> Sensor A (Voltaje Analógico)</label><br>
+    <label><input type="checkbox" class="sensor-checkbox" value="B"> Sensor B (Voltaje Batería)</label><br>
+    <label><input type="checkbox" class="sensor-checkbox" value="C"> Sensor C (Temp DHT11)</label><br>
+    <label><input type="checkbox" class="sensor-checkbox" value="D"> Sensor D (Humedad DHT11)</label><br>
+    <label><input type="checkbox" class="sensor-checkbox" value="E"> Sensor E (Temp DS18B20)</label><br>
+    <label><input type="checkbox" class="sensor-checkbox" value="F"> Sensor F (Temp SHT10)</label><br>
+    <label><input type="checkbox" class="sensor-checkbox" value="G"> Sensor G (Humedad SHT10)</label><br>
+    <!-- Agrega más si tienes más comandos -->
+
+    <br>
+    <button id="btnLeer" onclick="leerSensores()">Leer Sensores</button>
+    <button onclick="limpiarCampos()">Limpiar Resultados</button>
+    <div id="estado" style="margin-top: 10px; color: blue;"></div>
+    <h3>Resultados:</h3>
+    <label>Voltaje Analógico: <input id="volt_analog" readonly></label><br>
+    <label>Voltaje Batería: <input id="volt_bat" readonly></label><br>
+    <label>Temp DHT11: <input id="temp_dht" readonly></label><br>
+    <label>Humedad DHT11: <input id="hum_dht" readonly></label><br>
+    <label>Temp DS18B20: <input id="temp_ds18" readonly></label><br>
+    <label>Temp SHT10: <input id="temp_sht" readonly></label><br>
+    <label>Humedad SHT10: <input id="hum_sht" readonly></label><br>
+</body>
+</html>

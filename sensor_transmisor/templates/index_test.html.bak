@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lectura de Sensores</title>
+    <script>
+        function seleccionarTodos(checked) {
+            const checkboxes = document.querySelectorAll(".sensor-checkbox");
+            checkboxes.forEach(cb => cb.checked = checked);
+        }
+
+        function alternarModoContinua(checkbox) {
+            const checkboxes = document.querySelectorAll(".sensor-checkbox");
+            const frecuencias = document.querySelectorAll(".frecuencia");
+
+            if (checkbox.checked) {
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.disabled = false;
+                });
+                document.querySelector(".sensor-checkbox").checked = true; // seleccionar el primero por defecto
+                document.querySelector(".frecuencia").style.display = "inline";
+                document.querySelector(".frecuencia-input").disabled = false;
+
+                checkboxes.forEach(cb => {
+                    cb.addEventListener("change", limitarSeleccion);
+                });
+            } else {
+                checkboxes.forEach(cb => {
+                    cb.disabled = false;
+                    cb.removeEventListener("change", limitarSeleccion);
+                });
+                frecuencias.forEach(f => f.style.display = "none");
+                document.querySelector(".frecuencia-input").disabled = true;
+            }
+        }
+
+        function limitarSeleccion(e) {
+            const seleccionados = Array.from(document.querySelectorAll(".sensor-checkbox:checked"));
+            if (seleccionados.length > 2) {
+                e.target.checked = false;
+                alert("Solo puedes seleccionar 2 sensores en modo lectura continua.");
+            }
+
+        /*    // Mostrar la frecuencia solo si se seleccionó el sensor correspondiente
+            document.querySelectorAll(".frecuencia").forEach(f => f.style.display = "none");
+            document.querySelector(".frecuencia-input").disabled = true;
+            if (seleccionados[0]?.value === "A") {
+                document.getElementById("freq_A").style.display = "inline";
+                document.querySelector(".frecuencia-input").disabled = false;
+            }*/
+			// Mostrar los spans correspondientes a los elementos seleccionados
+			seleccionados.forEach(sel => {
+				const id = `freq_${sel.value}`;
+				const span = document.getElementById(id);
+				if (span) {
+					span.style.display = "inline";
+					const input = span.querySelector(".frecuencia-input");
+					if (input) input.disabled = false;
+				}
+			});
+        }
+
+        async function leerSensores() {
+            const btn = document.getElementById("btnLeer");
+            const estado = document.getElementById("estado");
+            const modoContinua = document.getElementById("lecturaContinua").checked;
+
+            const seleccionados = Array.from(document.querySelectorAll(".sensor-checkbox:checked"))
+                                        .map(cb => cb.value);
+
+            if (seleccionados.length === 0) {
+                alert("Selecciona al menos un sensor.");
+                return;
+            }
+        
+            // 🔁 LECTURA CONTINUA (SSE)
+            if (modoContinua) {
+                /*if (seleccionados.length !== 1) {
+                    alert("Selecciona solo un sensor para lectura continua.");
+                    return;
+                }*/
+            
+               /* const sensor = seleccionados[0];
+                const frecuencia = parseInt(document.getElementById(`freq_input_${sensor}`).value);
+				*/
+				let frecuencia = 0;
+				let sensorMax = null;
+
+				console.log("Sensores seleccionados:", seleccionados);
+
+				seleccionados.forEach(sensor => {
+					const id = `freq_input_${sensor}`;
+					const input = document.getElementById(id);
+
+					console.log(`Buscando input con ID: ${id}`);
+
+					if (input) {
+						console.log(`Valor encontrado en ${id}: "${input.value}"`);
+						const valor = parseInt(input.value);
+
+						if (!isNaN(valor)) {
+							console.log(`Valor numérico: ${valor}`);
+							if (valor > frecuencia) {
+								frecuencia = valor;
+								sensorMax = sensor;
+							}
+						} else {
+							console.warn(`Valor no numérico en input de ${sensor}`);
+						}
+					} else {
+						console.warn(`No se encontró el input con ID: ${id}`);
+					}
+				});
+
+				alert(`Frecuencia máxima: ${frecuencia} (Sensor ${sensorMax || "ninguno"})`);
+
+
+				// Mostrar una alerta con la frecuencia máxima encontrada
+				alert(`Frecuencia máxima seleccionada y sensor: ${frecuencia}`);
+				alert(`Sensor con frecuencia máxima: ${sensorMax || "ninguno"}`);
+            
+                if (isNaN(frecuencia) || frecuencia < 1 || frecuencia > 60) {
+                    alert("Frecuencia inválida (rango permitido: 1 a 60 segundos).");
+                    return;
+                }
+            
+                iniciarLecturaContinua(sensor, frecuencia);
+            
+                btn.disabled = true;
+                document.getElementById("btnStop").style.display = "inline";
+                estado.innerText = "Iniciando lectura continua...";
+                return;
+            }
+        
+            // 🔁 LECTURA NORMAL (una vez)
+            const url = `/leer_sensores?comando=N,${seleccionados.join(",")}`;
+            btn.disabled = true;
+            estado.innerText = "Solicitando datos...";
+        
+            try {
+                const response = await fetch(url);
+                const datos = await response.json();
+            
+                if (!response.ok || datos.error) {
+                    estado.style.color = "red";
+                    estado.innerText = datos.error || "Error al leer sensores";
+                    return;
+                }
+            
+                // Mostrar datos
+                document.getElementById("volt_analog").value = datos.volt_analog?.toFixed(2) || '';
+                document.getElementById("volt_bat").value = datos.volt_bat?.toFixed(2) || '';
+                document.getElementById("temp_dht").value = datos.temp_dht?.toFixed(2) || '';
+                document.getElementById("hum_dht").value = datos.hum_dht?.toFixed(2) || '';
+                document.getElementById("temp_ds18").value = datos.temp_ds18?.toFixed(2) || '';
+                document.getElementById("temp_sht").value = datos.temp_sht?.toFixed(2) || '';
+                document.getElementById("hum_sht").value = datos.hum_sht?.toFixed(2) || '';
+            
+                estado.style.color = "green";
+                estado.innerText = "Lectura completada.";
+            } catch (error) {
+                estado.style.color = "red";
+                estado.innerText = "Fallo de conexión con el servidor.";
+                console.error(error);
+            } finally {
+                setTimeout(() => {
+                    estado.innerText = "";
+                    estado.style.color = "blue";
+                    btn.disabled = false;
+                }, 3000);
+            }
+        }
+
+
+        function limpiarCampos() {
+            const campos = [
+                "volt_analog", "volt_bat",
+                "temp_dht", "hum_dht",
+                "temp_ds18", "temp_sht", "hum_sht"
+            ];
+            campos.forEach(id => document.getElementById(id).value = '');
+        }
+	
+       
+        window.addEventListener("DOMContentLoaded", () => {
+            const ctx = document.getElementById("graficoSensor").getContext("2d");
+            grafico = new Chart(ctx, {
+                type: 'line',
+                data: datosGrafico,
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Tiempo' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Valor' }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Lectura de Sensores</h1>
+
+    <h3>Selecciona los sensores:</h3>
+    <label><input type="checkbox" onchange="seleccionarTodos(this.checked)"> Seleccionar todos</label><br>
+    <label><input type="checkbox" id="lecturaContinua" onchange="alternarModoContinua(this)"> Lectura continua</label><br><br>
+
+
+        
+   <label><input type="checkbox" class="sensor-checkbox" value="A"> Sensor A (Voltaje Analógico)</label>
+   <span class="frecuencia" id="freq_A" style="display:none">
+       Frecuencia (s): <input type="number" min="1" max="60" value="1" class="frecuencia-input" id="freq_input_A" disabled>
+   </span><br>
+   <label><input type="checkbox" class="sensor-checkbox" value="B"> Sensor B (Voltaje Batería)</label>
+   <span class="frecuencia" id="freq_B" style="display:none">
+       Frecuencia (s): <input type="number" min="1" max="60" value="1" class="frecuencia-input" id="freq_input_B" disabled>
+   </span><br>
+   <label><input type="checkbox" class="sensor-checkbox" value="C"> Sensor C (Temp DHT11)</label>
+   <span class="frecuencia" id="freq_C" style="display:none">
+       Frecuencia (s): <input type="number" min="1" max="60" value="1" class="frecuencia-input" id="freq_input_C" disabled>
+   </span><br>
+   <label><input type="checkbox" class="sensor-checkbox" value="D"> Sensor D (Humedad DHT11)</label>
+   <span class="frecuencia" id="freq_D" style="display:none">
+       Frecuencia (s): <input type="number" min="1" max="60" value="1" class="frecuencia-input" id="freq_input_D" disabled>
+   </span><br>
+   <label><input type="checkbox" class="sensor-checkbox" value="E"> Sensor E (Temp DS18B20)</label>
+   <span class="frecuencia" id="freq_E" style="display:none">
+       Frecuencia (s): <input type="number" min="1" max="60" value="1" class="frecuencia-input" id="freq_input_E" disabled>
+   </span><br>
+   <label><input type="checkbox" class="sensor-checkbox" value="F"> Sensor F (Temp SHT10)</label>
+   <span class="frecuencia" id="freq_F" style="display:none">
+       Frecuencia (s): <input type="number" min="1" max="60" value="1" class="frecuencia-input" id="freq_input_F" disabled>
+   </span><br>
+   <label><input type="checkbox" class="sensor-checkbox" value="G"> Sensor G (Humedad SHT10)</label>
+   <span class="frecuencia" id="freq_G" style="display:none">
+       Frecuencia (s): <input type="number" min="1" max="60" value="1" class="frecuencia-input" id="freq_input_G" disabled>
+   </span><br>   
+        
+
+    <div style="display: flex; align-items: flex-start; gap: 30px;">
+        <!-- Columna izquierda: checkboxes y controles -->
+        
+        <div>
+            <br>
+            <button id="btnLeer" onclick="leerSensores()">Leer Sensores</button>
+            <button id="btnStop" onclick="detenerLecturaContinua()" style="display:none;">Detener Lectura Continua</button>
+            <button onclick="limpiarCampos()">Limpiar Resultados</button>
+            <div id="estado" style="margin-top: 10px; color: blue;"></div>
+            <h3>Resultados:</h3>
+            <label>Voltaje Analógico: <input id="volt_analog" readonly></label><br>
+            <label>Voltaje Batería: <input id="volt_bat" readonly></label><br>
+            <label>Temp DHT11: <input id="temp_dht" readonly></label><br>
+            <label>Humedad DHT11: <input id="hum_dht" readonly></label><br>
+            <label>Temp DS18B20: <input id="temp_ds18" readonly></label><br>
+            <label>Temp SHT10: <input id="temp_sht" readonly></label><br>
+            <label>Humedad SHT10: <input id="hum_sht" readonly></label><br>
+        </div>   
+
+            <!-- Columna derecha: gráfico -->  
+        <div> 
+            <canvas id="graficoSensor" width="600" height="300"></canvas>
+            
+        </div>
+        
+    </div>  
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+    let grafico;
+    let datosVoltaje = [];
+    let etiquetasTiempo = [];
+
+    // Crear el gráfico al cargar
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("graficoSensor").getContext("2d");
+        grafico = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: etiquetasTiempo,
+                datasets: [{
+                    label: 'Voltaje Batería',
+                    data: datosVoltaje,
+                    borderColor: 'blue',
+                    backgroundColor: 'rgba(0,0,255,0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                animation: false,
+                responsive: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Hora' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Voltaje (V)' },
+                        min: 0,
+                        max: 3.3
+                    }
+                }
+            }
+        });
+    });
+
+    function iniciarLecturaContinua(comando, frecuencia) {
+        const url = `/leer_sensores?modo=LC&comando=${comando}&frecuencia=${frecuencia}`;
+        const eventSource = new EventSource(url);
+
+        // Limpiar datos del gráfico
+        etiquetasTiempo.length = 0;
+        datosVoltaje.length = 0;
+
+        // Cambiar etiqueta del gráfico
+        let etiqueta = "";
+        switch (comando) {
+            case 'A': etiqueta = "Voltaje Analógico"; break;
+            case 'B': etiqueta = "Voltaje Batería"; break;
+            case 'C': etiqueta = "Temp DHT11"; break;
+            case 'D': etiqueta = "Humedad DHT11"; break;
+            case 'E': etiqueta = "Temp DS18B20"; break;
+            case 'F': etiqueta = "Temp SHT10"; break;
+            case 'G': etiqueta = "Humedad SHT10"; break;
+            default: etiqueta = "Sensor";
+        }
+        grafico.data.datasets[0].label = etiqueta;
+
+        eventSource.onmessage = function(event) {
+            const datos = JSON.parse(event.data);
+            const hora = new Date().toLocaleTimeString();
+            let valor = null;
+
+            // Selecciona el valor del sensor correcto
+            switch (comando) {
+                case 'A': valor = datos.volt_analog; break;
+                case 'B': valor = datos.volt_bat; break;
+                case 'C': valor = datos.temp_dht; break;
+                case 'D': valor = datos.hum_dht; break;
+                case 'E': valor = datos.temp_ds18; break;
+                case 'F': valor = datos.temp_sht; break;
+                case 'G': valor = datos.hum_sht; break;
+            }
+
+            // Actualiza campo visible también (opcional)
+            if (valor !== null) {
+                etiquetasTiempo.push(hora);
+                datosVoltaje.push(valor);
+
+                if (etiquetasTiempo.length > 5) {
+                    etiquetasTiempo.shift();
+                    datosVoltaje.shift();
+                }
+
+                grafico.update();
+            }
+
+            // También actualiza el input si aplica
+            if (datos.volt_analog !== undefined) {
+                document.getElementById("volt_analog").value = datos.volt_analog.toFixed(2);
+            }
+            if (datos.volt_bat !== undefined) {
+                document.getElementById("volt_bat").value = datos.volt_bat.toFixed(2);
+            }
+
+            if (datos.error) {
+                console.error("Error recibido:", datos.error);
+                eventSource.close();
+            }
+        };
+
+        eventSource.onerror = function(err) {
+            console.error("Error en EventSource:", err);
+            eventSource.close();
+        };
+
+        window._eventSource = eventSource;
+    }
+
+
+    async function detenerLecturaContinua() {
+        const estado = document.getElementById("estado");
+        estado.innerText = "Deteniendo lectura continua...";
+
+        if (window._eventSource) {
+            window._eventSource.close();
+            window._eventSource = null;
+        }
+
+        try {
+            const response = await fetch('/leer_sensores?modo=STOP');
+            const datos = await response.json();
+
+            if (!response.ok || datos.error) {
+                estado.style.color = "red";
+                estado.innerText = datos.error || "Error al detener lectura.";
+                return;
+            }
+
+            estado.style.color = "green";
+            estado.innerText = "Lectura continua detenida.";
+
+            // Restaurar interfaz
+            document.getElementById("lecturaContinua").checked = false;
+            alternarModoContinua(document.getElementById("lecturaContinua"));
+            document.getElementById("btnStop").style.display = "none";
+            document.getElementById("btnLeer").disabled = false;
+        } catch (error) {
+            estado.style.color = "red";
+            estado.innerText = "Error al detener la lectura continua.";
+            console.error(error);
+        } finally {
+            setTimeout(() => {
+                estado.innerText = "";
+                estado.style.color = "blue";
+            }, 3000);
+        }
+    }
+
+    </script>
+
+    <a href="/vh400" style="text-decoration:none;">
+        <button>VH400</button>
+    </a>
+
+
+</body>
+</html>
