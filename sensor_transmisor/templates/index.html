@@ -355,7 +355,14 @@
                 if (datosVoltaje.length > 0) {
                     const minValor = Math.min(...datosVoltaje);
                     const maxValor = Math.max(...datosVoltaje);
-                    const margen = (maxValor - minValor) * 0.1; // 10% de margen
+                    let rango = maxValor - minValor;
+                    
+                    // Garantizar un rango mínimo para que no se colapse
+                    if (rango === 0) {
+                        rango = maxValor > 0 ? maxValor * 0.2 : 1;
+                    }
+                    
+                    const margen = rango * 0.1; // 10% de margen
 
                     grafico.options.scales.y.min = Math.max(0, minValor - margen);
                     grafico.options.scales.y.max = maxValor + margen;
