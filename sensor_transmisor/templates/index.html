@@ -311,17 +311,63 @@
         etiquetasTiempo.length = 0;
         datosVoltaje.length = 0;
 
-        // Cambiar etiqueta del gráfico
+        // Cambiar etiqueta del gráfico y ajustar escala solo para un sensor
         let etiqueta = "";
-        switch (comando) {
-            case 'A': etiqueta = "Voltaje Analógico"; break;
-            case 'B': etiqueta = "Voltaje Batería"; break;
-            case 'C': etiqueta = "Temp DHT11"; break;
-            case 'D': etiqueta = "Humedad DHT11"; break;
-            case 'E': etiqueta = "Temp DS18B20"; break;
-            case 'F': etiqueta = "Temp SHT10"; break;
-            case 'G': etiqueta = "Humedad SHT10"; break;
-            default: etiqueta = "Sensor";
+        if (comando.length === 1) {
+            switch (comando) {
+                case 'A': 
+                    etiqueta = "Voltaje Analógico";
+                    grafico.options.scales.y.min = 0;
+                    grafico.options.scales.y.max = 3.3;
+                    grafico.options.scales.y.title.text = 'Voltaje (V)';
+                    break;
+                case 'B': 
+                    etiqueta = "Voltaje Batería";
+                    grafico.options.scales.y.min = 0;
+                    grafico.options.scales.y.max = 4.2;
+                    grafico.options.scales.y.title.text = 'Voltaje (V)';
+                    break;
+                case 'C': 
+                    etiqueta = "Temp DHT11";
+                    grafico.options.scales.y.min = -10;
+                    grafico.options.scales.y.max = 50;
+                    grafico.options.scales.y.title.text = 'Temperatura (°C)';
+                    break;
+                case 'D': 
+                    etiqueta = "Humedad DHT11";
+                    grafico.options.scales.y.min = 0;
+                    grafico.options.scales.y.max = 100;
+                    grafico.options.scales.y.title.text = 'Humedad (%)';
+                    break;
+                case 'E': 
+                    etiqueta = "Temp DS18B20";
+                    grafico.options.scales.y.min = -10;
+                    grafico.options.scales.y.max = 50;
+                    grafico.options.scales.y.title.text = 'Temperatura (°C)';
+                    break;
+                case 'F': 
+                    etiqueta = "Temp SHT10";
+                    grafico.options.scales.y.min = -10;
+                    grafico.options.scales.y.max = 50;
+                    grafico.options.scales.y.title.text = 'Temperatura (°C)';
+                    break;
+                case 'G': 
+                    etiqueta = "Humedad SHT10";
+                    grafico.options.scales.y.min = 0;
+                    grafico.options.scales.y.max = 100;
+                    grafico.options.scales.y.title.text = 'Humedad (%)';
+                    break;
+                default: 
+                    etiqueta = "Sensor";
+                    grafico.options.scales.y.min = 0;
+                    grafico.options.scales.y.max = 100;
+                    grafico.options.scales.y.title.text = 'Valor';
+            }
+        } else {
+            etiqueta = "Múltiples Sensores";
+            grafico.options.scales.y.min = 0;
+            grafico.options.scales.y.max = 100;
+            grafico.options.scales.y.title.text = 'Valor';
         }
         grafico.data.datasets[0].label = etiqueta;
 
@@ -350,27 +396,6 @@
                     etiquetasTiempo.shift();
                     datosVoltaje.shift();
                 }
-
-                // Ajustar escala del gráfico dinámicamente
-                if (datosVoltaje.length > 0) {
-                    const minValor = Math.min(...datosVoltaje);
-                    const maxValor = Math.max(...datosVoltaje);
-                    let rango = maxValor - minValor;
-                    
-                    // Garantizar un rango mínimo para que no se colapse
-                    if (rango === 0) {
-                        rango = maxValor > 0 ? maxValor * 0.2 : 1;
-                    }
-                    
-                    const margen = rango * 0.1; // 10% de margen
-
-                    grafico.options.scales.y.min = Math.max(0, minValor - margen);
-                    grafico.options.scales.y.max = maxValor + margen;
-                }
-
-                /* CÓDIGO ANTERIOR (solo actualizar sin ajustar escala):
-                grafico.update();
-                */
 
                 grafico.update();
             }
