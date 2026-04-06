@@ -176,26 +176,6 @@
             ];
             campos.forEach(id => document.getElementById(id).value = '');
         }
-	
-       
-        window.addEventListener("DOMContentLoaded", () => {
-            const ctx = document.getElementById("graficoSensor").getContext("2d");
-            grafico = new Chart(ctx, {
-                type: 'line',
-                data: datosGrafico,
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Tiempo' }
-                        },
-                        y: {
-                            title: { display: true, text: 'Valor' }
-                        }
-                    }
-                }
-            });
-        });
     </script>
 </head>
 <body>
