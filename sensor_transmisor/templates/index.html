@@ -351,6 +351,20 @@
                     datosVoltaje.shift();
                 }
 
+                // Ajustar escala del gráfico dinámicamente
+                if (datosVoltaje.length > 0) {
+                    const minValor = Math.min(...datosVoltaje);
+                    const maxValor = Math.max(...datosVoltaje);
+                    const margen = (maxValor - minValor) * 0.1; // 10% de margen
+
+                    grafico.options.scales.y.min = Math.max(0, minValor - margen);
+                    grafico.options.scales.y.max = maxValor + margen;
+                }
+
+                /* CÓDIGO ANTERIOR (solo actualizar sin ajustar escala):
+                grafico.update();
+                */
+
                 grafico.update();
             }
 
